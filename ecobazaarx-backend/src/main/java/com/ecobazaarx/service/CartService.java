@@ -49,11 +49,17 @@ public class CartService {
           .map(CartItemDto::getProductId)
           .collect(java.util.stream.Collectors.toList());
 
-      java.util.Map<Long, Integer> stockMap = productRepository.findAllById(productIds).stream()
-          .collect(java.util.stream.Collectors.toMap(Product::getId, Product::getStockQuantity));
+      java.util.Map<Long, Product> productMap = productRepository.findAllById(productIds).stream()
+          .collect(java.util.stream.Collectors.toMap(Product::getId, p -> p));
 
       for (CartItemDto itemDto : dto.getItems()) {
-        itemDto.setAvailableStock(stockMap.getOrDefault(itemDto.getProductId(), 0));
+        Product p = productMap.get(itemDto.getProductId());
+        if (p != null) {
+          itemDto.setAvailableStock(p.getStockQuantity());
+          itemDto.setProductCity(p.getCity());
+          itemDto.setProductState(p.getState());
+          itemDto.setImageUrl(p.getImageUrl());
+        }
       }
     }
     return dto;
@@ -132,8 +138,10 @@ public class CartService {
     }
 
     // --- 1. Calculate Totals & Validate Initial Stock ---
-    double totalAmount = 0.0;
+    // --- 1. Calculate Totals & Validate Initial Stock ---
+    double subtotal = 0.0;
     double totalCarbonSaved = 0.0;
+    double totalShippingCost = 0.0;
 
     // We snapshot items to avoid ConcurrentModificationException if we were
     // modifying cart in place
@@ -150,12 +158,25 @@ public class CartService {
         throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Not enough stock for " + p.getName());
       }
 
-      totalAmount += it.getProductPrice() * it.getQuantity();
+      subtotal += it.getProductPrice() * it.getQuantity();
 
       double savedPerItem = it.getCarbonSavedPerItem() != null ? it.getCarbonSavedPerItem()
           : (p.getCarbonSavedPerItem() != null ? p.getCarbonSavedPerItem() : 0.0);
-      totalCarbonSaved += savedPerItem * it.getQuantity();
+
+      // Apply Transport Emission specific to this item's source
+      double transportEmission = calculateTransportEmission(p.getCity(), p.getState(), shippingAddress.getCity(),
+          shippingAddress.getState());
+      double finalSavedPerItem = Math.max(0, savedPerItem - transportEmission);
+
+      totalCarbonSaved += finalSavedPerItem * it.getQuantity();
+
+      // Calculate Shipping Fee (Per Product Line Item) matches Frontend
+      totalShippingCost += calculateShippingFee(p.getCity(), p.getState(), shippingAddress.getCity(),
+          shippingAddress.getState());
     }
+
+    // Include Shipping Cost (Dynamic)
+    double totalAmount = subtotal + totalShippingCost;
 
     com.ecobazaarx.entity.User user = userRepository.findById(userId).orElseThrow();
 
@@ -209,7 +230,12 @@ public class CartService {
       // We rely on CartItem snapshot for price stability during this transaction
       Product p = productRepository.findById(cartItem.getProductId()).orElseThrow(); // Cached in 1st level cache likely
 
-      double savedPerItem = cartItem.getCarbonSavedPerItem() != null ? cartItem.getCarbonSavedPerItem() : 0.0;
+      // --- Transport Emission Logic ---
+      double transportEmission = calculateTransportEmission(p.getCity(), p.getState(), shippingAddress.getCity(),
+          shippingAddress.getState());
+
+      double baseSavedPerItem = cartItem.getCarbonSavedPerItem() != null ? cartItem.getCarbonSavedPerItem() : 0.0;
+      double finalSavedPerItem = Math.max(0, baseSavedPerItem - transportEmission);
 
       OrderItem orderItem = OrderItem.builder()
           .order(order)
@@ -218,7 +244,7 @@ public class CartService {
           .price(cartItem.getProductPrice())
           .quantity(cartItem.getQuantity())
           .carbonFootprintPerUnit(cartItem.getCarbonFootprintPerUnit())
-          .carbonSavedPerItem(savedPerItem)
+          .carbonSavedPerItem(finalSavedPerItem)
           .sellerId((p.getSeller() != null && p.getSeller().getId() != null) ? p.getSeller().getId() : 1L) // Fallback
                                                                                                            // to Admin
                                                                                                            // (ID 1)
@@ -242,5 +268,53 @@ public class CartService {
     cartRepository.save(cart);
 
     return savedOrder;
+  }
+
+  private double calculateTransportEmission(String sellerCity, String sellerState, String buyerCity,
+      String buyerState) {
+    if (sellerCity == null || sellerState == null || buyerCity == null || buyerState == null) {
+      // If data is missing, we assume worst case (diff state) or 0?
+      // Prompt says "Complete the missing CO2 calculation logic using the existing
+      // Checkout address fields."
+      // Let's assume 1.2 (Worst Case) if unknown to encourage data entry, or 0 if we
+      // want to be lenient?
+      // Logic requirement: "Compare Seller city/state... Buyer city/state".
+      // If we don't have it, we can't calculate correct savings.
+      // Let's default to standard logic:
+      return 1.2;
+    }
+
+    String sCity = sellerCity.trim().toLowerCase();
+    String sState = sellerState.trim().toLowerCase();
+    String bCity = buyerCity.trim().toLowerCase();
+    String bState = buyerState.trim().toLowerCase();
+
+    if (sState.equals(bState)) {
+      if (sCity.equals(bCity)) {
+        return 0.2; // Same City
+      }
+      return 0.6; // Same State, Diff City
+    }
+    return 1.2; // Diff State
+  }
+
+  private double calculateShippingFee(String sellerCity, String sellerState, String buyerCity, String buyerState) {
+    if (sellerCity == null || sellerState == null || buyerCity == null || buyerState == null) {
+      // Default to max fee if location unknown
+      return 80.0;
+    }
+
+    String sCity = sellerCity.trim().toLowerCase();
+    String sState = sellerState.trim().toLowerCase();
+    String bCity = buyerCity.trim().toLowerCase();
+    String bState = buyerState.trim().toLowerCase();
+
+    if (sState.equals(bState)) {
+      if (sCity.equals(bCity)) {
+        return 20.0; // Same City / District
+      }
+      return 50.0; // Same State, different City
+    }
+    return 80.0; // Different State
   }
 }

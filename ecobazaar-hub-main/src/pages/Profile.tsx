@@ -253,7 +253,7 @@ export default function Profile() {
                     <span className="font-bold text-purple-800">10% OFF Coupon</span>
                     <span className="bg-purple-200 text-purple-800 text-xs font-bold px-2 py-1 rounded-full">500 Pts</span>
                   </div>
-                  <p className="text-xs text-purple-600 mb-3">Get 10% off your next order (Min order $200).</p>
+                  <p className="text-xs text-purple-600 mb-3">Get 10% off your next order (Min order ₹200).</p>
                   <button
                     onClick={async () => {
                       if (!user?.id) return;

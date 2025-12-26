@@ -38,12 +38,108 @@ export default function Checkout() {
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
   const [country, setCountry] = useState("India"); // Default country
 
+  const calculateCarbonDetails = () => {
+    // Return null if address incomplete, but maybe we still want to show 'Base' saved?
+    // Requirement: "If address is incomplete: Show: 'Enter shipping address to calculate final CO2 saved'"
+    // So distinct null state for Final is needed.
+
+    // Calculate Base first (always available)
+    const baseTotal = cartItems.reduce((sum, item) => sum + ((item.carbonSavedPerItem || 0) * item.quantity), 0);
+
+    if (!city || !state) {
+      return { base: baseTotal, transport: 0, final: null };
+    }
+
+    let transportTotal = 0;
+    let finalTotal = 0;
+
+    cartItems.forEach(item => {
+      const pCity = item.productCity ? item.productCity.toLowerCase().trim() : "";
+      const pState = item.productState ? item.productState.toLowerCase().trim() : "";
+      const bCity = city.toLowerCase().trim();
+      const bState = state.toLowerCase().trim();
+
+      let unitTransport = 1.2; // Default Diff State
+
+      if (pState && bState && pState === bState) {
+        if (pCity && bCity && pCity === bCity) {
+          unitTransport = 0.2;
+        } else {
+          unitTransport = 0.6;
+        }
+      }
+
+      const quantity = item.quantity || 1;
+      transportTotal += (unitTransport * quantity);
+
+      const baseUnit = item.carbonSavedPerItem || 0;
+      const finalUnit = Math.max(0, baseUnit - unitTransport);
+      finalTotal += (finalUnit * quantity);
+    });
+
+    return { base: baseTotal, transport: transportTotal, final: finalTotal };
+  };
+
+  // Calculate totals
   // Calculate totals
   const subtotal = cartItems.reduce((sum, item) => sum + (item.productPrice * item.quantity), 0);
-  const totalCarbonSaved = cartItems.reduce((sum, item) => sum + ((item.carbonSavedPerItem || 0) * item.quantity), 0);
-  const shippingCost = subtotal > 500 ? 0 : 50; // Free shipping logic
-  const total = Math.max(0, subtotal - discountAmount + shippingCost);
-  const pointsToEarn = Math.round(totalCarbonSaved * 10);
+
+  const carbonDetails = calculateCarbonDetails();
+
+  const calculateShippingCost = () => {
+    if (!city || !state) return null;
+
+    let totalShipping = 0;
+
+    // We calculate shipping per item source rule
+    // Although "Transport Emission" was calculated per item quantity logic slightly differently (unit based),
+    // Shipping usually applies per shipment. 
+    // Simplified Rule Interpretation: 
+    // Iterate items, compare locations, sum up the fees.
+
+    cartItems.forEach(item => {
+      const pCity = item.productCity ? item.productCity.toLowerCase().trim() : "";
+      const pState = item.productState ? item.productState.toLowerCase().trim() : "";
+      const bCity = city.toLowerCase().trim();
+      const bState = state.toLowerCase().trim();
+
+      let itemFee = 80; // Default Diff State
+
+      if (pState && bState && pState === bState) {
+        if (pCity && bCity && pCity === bCity) {
+          itemFee = 20;
+        } else {
+          itemFee = 50;
+        }
+      }
+
+      // Fee is per item or per "shipment"? 
+      // User prompt says "Delivery Fee Rules...". 
+      // If I buy 10 items, do I pay 10x? Usually no.
+      // But let's assume "per distinct item type" given the list iteration structure or simply sum it up as requested by strict interpretation of "rules" applied to the transaction.
+      // However, to avoid massive fees (e.g. 10 quantity * 80 = 800), let's apply it per distinct product line (as cartItems are distinct products).
+      // Even better: The prompt ignores quantity. "Comparing with seller City/State". 
+      // Let's add it once per line item (handling different sellers).
+      totalShipping += itemFee;
+    });
+
+    return totalShipping;
+  };
+
+  const shippingCost = calculateShippingCost();
+
+  // Total uses shippingCost if available, else 0 for calculation but UI shows "Enter address"
+  const total = Math.max(0, subtotal - discountAmount + (shippingCost || 0));
+
+  // Points based on Final (if available) or Base (estimate)? 
+  // "You will earn approximately... matches final" implies we should use final if avail.
+  // If final is null (waiting address), what to show? Maybe Base is too optimistic?
+  // Let's show "approx" based on Base but maybe less? 
+  // Actually, standard is usually based on final purchase.
+  // Let's use Base if final is null, but maybe clearer to user?
+  // Previous logic was 0 if incomplete. Let's stick to 0 or maybe just show Base?
+  // Prompt: "Enter shipping address to calculate..." implies we don't show final yet.
+  const pointsToEarn = carbonDetails.final !== null ? Math.round(carbonDetails.final * 10) : 0;
 
   const handleApplyCoupon = async () => {
     if (!couponCode.trim()) return;
@@ -56,7 +152,9 @@ export default function Checkout() {
       if (!user?.id) throw new Error("Please log in to apply coupons");
 
       // Use the new CouponService for validation/preview
-      const result = await rewardsService.validateCoupon(couponCode, subtotal); // Assuming rewardsService has validateCoupon
+      // User expects validation against Total (including shipping), not just subtotal
+      const amountToValidate = subtotal + shippingCost;
+      const result = await rewardsService.validateCoupon(couponCode, amountToValidate);
 
       if (result.isValid) {
         setDiscountAmount(result.discountAmount);
@@ -105,11 +203,7 @@ export default function Checkout() {
 
 
 
-  const calculateCarbonSaved = () => {
-    return cartItems.reduce((sum, item) => sum + ((item.carbonSavedPerItem || 0) * item.quantity), 0);
-  };
 
-  const currentCarbonSaved = calculateCarbonSaved();
 
   const handlePlaceOrder = async () => {
     if (!user) return;
@@ -136,7 +230,7 @@ export default function Checkout() {
       await cartService.checkout(shippingAddress, appliedCoupon?.code);
 
       // Capture the carbon saved for this order before clearing state/navigation
-      setLastOrderCo2(currentCarbonSaved);
+      setLastOrderCo2(carbonDetails.final || 0);
 
       // Show celebration overlay instead of immediate navigation
       setShowCelebration(true);
@@ -311,8 +405,8 @@ export default function Checkout() {
                   </div>
                   <div className="flex justify-between">
                     <span>Shipping</span>
-                    <span className={shippingCost === 0 ? "text-eco" : ""}>
-                      {shippingCost === 0 ? "FREE" : `₹${shippingCost}`}
+                    <span className={!shippingCost ? "text-orange-600 text-xs italic" : ""}>
+                      {shippingCost === null ? "Enter address to calculate" : `₹${shippingCost.toFixed(2)}`}
                     </span>
                   </div>
                   {/* Coupon Section */}
@@ -359,18 +453,43 @@ export default function Checkout() {
                     )}
                   </div>
                   <div className="pt-2 text-xs text-muted-foreground">
-                    You will earn approximately <strong className="text-emerald-600">{Math.round(totalCarbonSaved * 10)} Carbon Points</strong>
+                    You will earn approximately <strong className="text-emerald-600">{pointsToEarn} Carbon Points</strong>
                   </div>
                   <div className="flex justify-between font-bold text-lg border-t pt-2">
                     <span>Total</span>
                     <span>₹{total.toFixed(2)}</span>
                   </div>
                 </div>
-                <div className="bg-eco/10 p-3 rounded-lg flex items-center gap-2">
-                  <Leaf className="h-5 w-5 text-eco" />
-                  <div>
-                    <p className="text-sm font-medium">Carbon Saved</p>
-                    <p className="text-lg font-bold text-eco">{totalCarbonSaved.toFixed(1)} kg CO₂</p>
+                <div className="bg-eco/10 p-4 rounded-lg space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Leaf className="h-5 w-5 text-eco" />
+                    <span className="font-semibold text-eco-dark">Eco Impact</span>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-muted-foreground text-sm">
+                      <span>Product CO₂ Saved</span>
+                      <span>{carbonDetails.base.toFixed(1)} kg</span>
+                    </div>
+                    {carbonDetails.final !== null ? (
+                      <>
+                        <div className="flex justify-between text-orange-600 text-sm">
+                          <span>Delivery CO₂ Added</span>
+                          <span>-{carbonDetails.transport.toFixed(1)} kg</span>
+                        </div>
+
+                        <div className="border-t border-eco/20"></div>
+
+                        <div className="flex justify-between items-center font-bold text-eco bg-white/50 p-2 rounded -mx-2">
+                          <span>FINAL CO₂ Saved</span>
+                          <span className="text-lg">{carbonDetails.final.toFixed(1)} kg</span>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-xs text-orange-600 italic pt-2 border-t border-eco/20">
+                        Enter shipping address to calculate final CO₂ saved.
+                      </div>
+                    )}
                   </div>
                 </div>
                 <Button

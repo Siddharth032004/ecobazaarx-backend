@@ -34,6 +34,8 @@ public class MapperUtil {
         d.setDiscountPercent(p.getDiscountPercent());
         d.setIsFeatured(p.getIsFeatured());
         d.setImages(p.getImages());
+        d.setCity(p.getCity());
+        d.setState(p.getState());
         return d;
     }
 
@@ -60,6 +62,8 @@ public class MapperUtil {
                 .discountPercent(d.getDiscountPercent())
                 .isFeatured(d.getIsFeatured())
                 .images(d.getImages())
+                .city(d.getCity())
+                .state(d.getState())
                 .build();
         return p;
     }

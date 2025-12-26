@@ -223,6 +223,16 @@ public class RewardsService {
 
     @Transactional
     public void markCouponUsed(Coupon coupon) {
+        // Special Logic: Tier-based coupons (ECO5, ECO10, ECO15) are permanent perks
+        // and
+        // should NOT be marked as USED.
+        // They remain Active/Unused so they can be applied to every order.
+        if ("ECO5".equalsIgnoreCase(coupon.getCode()) ||
+                "ECO10".equalsIgnoreCase(coupon.getCode()) ||
+                "ECO15".equalsIgnoreCase(coupon.getCode())) {
+            return;
+        }
+
         coupon.setStatus("USED");
         coupon.setUsedAt(LocalDate.now());
         couponRepository.save(coupon);

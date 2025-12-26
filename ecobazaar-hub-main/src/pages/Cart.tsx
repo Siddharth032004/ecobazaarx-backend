@@ -87,8 +87,7 @@ const Cart = () => {
     0
   );
 
-  const shipping = subtotal > 500 ? 0 : 50;
-  const total = subtotal + shipping;
+  const total = subtotal;
 
   return (
     <div className="min-h-screen bg-background">
@@ -210,9 +209,9 @@ const Cart = () => {
                       <span className="text-muted-foreground">Subtotal</span>
                       <span>₹{subtotal.toFixed(2)}</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Shipping</span>
-                      <span>{shipping === 0 ? "FREE" : `₹${shipping}`}</span>
+                    <div className="flex justify-between text-sm text-muted-foreground">
+                      <span>Shipping</span>
+                      <span>Calculated at checkout</span>
                     </div>
                     <div className="border-t pt-2">
                       <div className="flex justify-between font-semibold">
@@ -235,12 +234,6 @@ const Cart = () => {
                   <Button className="w-full bg-primary hover:bg-primary-light" onClick={() => navigate("/checkout")}>
                     Proceed to Checkout
                   </Button>
-
-                  {subtotal < 500 && (
-                    <p className="text-center text-sm text-muted-foreground">
-                      Add ₹{(500 - subtotal).toFixed(2)} more for free shipping!
-                    </p>
-                  )}
                 </CardContent>
               </Card>
             </div>

@@ -1,0 +1,42 @@
+﻿[INFO] Scanning for projects...
+[INFO] 
+[INFO] -----------------< com.ecobazaarx:ecobazaarx-backend >------------------
+[INFO] Building ecobazaarx-backend 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- clean:3.4.1:clean (default-clean) @ ecobazaarx-backend ---
+[INFO] Deleting C:\Users\siddh\OneDrive\Desktop\kunal(ecobazar)\ecobazaarx-backend\ecobazaarx-backend\target
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ ecobazaarx-backend ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] Copying 0 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ ecobazaarx-backend ---
+[INFO] Changes detected - recompiling the module! :source
+[INFO] Compiling 77 source files with javac [debug release 17] to target\classes
+[INFO] /C:/Users/siddh/OneDrive/Desktop/kunal(ecobazar)/ecobazaarx-backend/ecobazaarx-backend/src/main/java/com/ecobazaarx/service/ProductService.java: Some input files use or override a deprecated API.
+[INFO] /C:/Users/siddh/OneDrive/Desktop/kunal(ecobazar)/ecobazaarx-backend/ecobazaarx-backend/src/main/java/com/ecobazaarx/service/ProductService.java: Recompile with -Xlint:deprecation for details.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ ecobazaarx-backend ---
+[INFO] skip non existing resourceDirectory C:\Users\siddh\OneDrive\Desktop\kunal(ecobazar)\ecobazaarx-backend\ecobazaarx-backend\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ ecobazaarx-backend ---
+[INFO] Changes detected - recompiling the module! :dependency
+[INFO] Compiling 1 source file with javac [debug release 17] to target\test-classes
+[INFO] 
+[INFO] --- surefire:3.5.4:test (default-test) @ ecobazaarx-backend ---
+[INFO] Tests are skipped.
+[INFO] 
+[INFO] --- jar:3.4.2:jar (default-jar) @ ecobazaarx-backend ---
+[INFO] Building jar: C:\Users\siddh\OneDrive\Desktop\kunal(ecobazar)\ecobazaarx-backend\ecobazaarx-backend\target\ecobazaarx-backend-0.0.1-SNAPSHOT.jar
+[INFO] 
+[INFO] --- spring-boot:3.5.7:repackage (repackage) @ ecobazaarx-backend ---
+[INFO] Replacing main artifact C:\Users\siddh\OneDrive\Desktop\kunal(ecobazar)\ecobazaarx-backend\ecobazaarx-backend\target\ecobazaarx-backend-0.0.1-SNAPSHOT.jar with repackaged archive, adding nested dependencies in BOOT-INF/.
+[INFO] The original artifact has been renamed to C:\Users\siddh\OneDrive\Desktop\kunal(ecobazar)\ecobazaarx-backend\ecobazaarx-backend\target\ecobazaarx-backend-0.0.1-SNAPSHOT.jar.original
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  27.172 s
+[INFO] Finished at: 2025-12-26T22:41:21+05:30
+[INFO] ------------------------------------------------------------------------

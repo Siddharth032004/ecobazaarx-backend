@@ -16,4 +16,6 @@ public class CartItemDto {
     private Double subtotalCarbonFootprint; // carbonFootprintPerUnit * quantity
     private Double subtotalCarbonSaved; // carbonSavedPerItem * quantity
     private Integer availableStock;
+    private String productCity;
+    private String productState;
 }

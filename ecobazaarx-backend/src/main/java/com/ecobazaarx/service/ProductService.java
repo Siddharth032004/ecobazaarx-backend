@@ -50,8 +50,21 @@ public class ProductService {
   }
 
   public Product getBySlug(String slug) {
-    return productRepository.findBySlug(slug)
-        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Product not found"));
+    java.util.Optional<Product> op = productRepository.findBySlug(slug);
+    if (op.isPresent()) {
+      return op.get();
+    }
+
+    // Fallback: Check if slug has :ID suffix and try base slug
+    if (slug != null && slug.contains(":")) {
+      String baseSlug = slug.substring(0, slug.lastIndexOf(':'));
+      op = productRepository.findBySlug(baseSlug);
+      if (op.isPresent()) {
+        return op.get();
+      }
+    }
+
+    throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Product not found");
   }
 
   private final CarbonBaselineService carbonBaselineService;
@@ -123,6 +136,10 @@ public class ProductService {
       existing.setIsFeatured(updatedProduct.getIsFeatured());
     if (updatedProduct.getImages() != null)
       existing.setImages(updatedProduct.getImages());
+    if (updatedProduct.getCity() != null)
+      existing.setCity(updatedProduct.getCity());
+    if (updatedProduct.getState() != null)
+      existing.setState(updatedProduct.getState());
 
     return productRepository.save(existing);
   }

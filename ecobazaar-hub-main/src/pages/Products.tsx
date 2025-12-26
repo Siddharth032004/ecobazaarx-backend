@@ -148,10 +148,12 @@ const Products = () => {
                             {product.discountPercent}% OFF
                           </div>
                         )}
-                        <div className="absolute bottom-2 right-2 rounded-full bg-eco-green px-2 py-1 text-xs font-semibold text-white">
-                          <Leaf className="mr-1 inline h-3 w-3" />
-                          {product.carbonFootprintPerUnit}kg CO₂ saved
-                        </div>
+                        {product.carbonSavedPerItem !== undefined && product.carbonSavedPerItem > 0 && (
+                          <div className="absolute bottom-2 right-2 rounded-full bg-eco-green px-2 py-1 text-xs font-semibold text-white">
+                            <Leaf className="mr-1 inline h-3 w-3" />
+                            {product.carbonSavedPerItem.toFixed(1)}kg CO₂ saved
+                          </div>
+                        )}
                         {(!product.stockQuantity || product.stockQuantity === 0) && (
                           <div className="absolute inset-0 flex items-center justify-center bg-black/50">
                             <span className="rounded-full bg-destructive px-4 py-2 font-semibold text-white">

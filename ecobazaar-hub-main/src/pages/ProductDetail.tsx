@@ -249,15 +249,11 @@ const ProductDetail = () => {
             {/* Description */}
             <div>
               <h3 className="mb-2 font-semibold">Description</h3>
-              <p className="text-muted-foreground">No description available</p>
+              <p className="text-muted-foreground whitespace-pre-wrap">{product.description || "No description available"}</p>
             </div>
 
-            {/* Stock & SKU */}
+            {/* Stock */}
             <div className="flex gap-4 text-sm">
-              <div>
-                <span className="text-muted-foreground">SKU: </span>
-                <span className="font-medium">N/A</span>
-              </div>
               <div>
                 <span className="text-muted-foreground">Stock: </span>
                 <span className={`font-medium ${product.stockQuantity && product.stockQuantity > 0 ? "text-eco-green" : "text-destructive"}`}>

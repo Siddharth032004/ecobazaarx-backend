@@ -12,7 +12,9 @@ import lombok.*;
 @Table(name = "product", indexes = {
     @Index(name = "idx_product_category", columnList = "categoryName"),
     @Index(name = "idx_product_price", columnList = "price"),
-    @Index(name = "idx_product_featured", columnList = "isFeatured")
+    @Index(name = "idx_product_featured", columnList = "isFeatured"),
+    @Index(name = "idx_product_name", columnList = "name"),
+    @Index(name = "idx_product_slug", columnList = "slug")
 })
 public class Product {
   @Id
@@ -56,6 +58,9 @@ public class Product {
 
   @Deprecated
   private String sellerStoreName; // Keep for backward compatibility, but prefer seller relationship
+
+  private String city;
+  private String state;
 
   @ManyToOne
   @JoinColumn(name = "seller_id")

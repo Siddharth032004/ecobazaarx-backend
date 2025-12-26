@@ -17,8 +17,15 @@ import org.springframework.web.bind.annotation.*;
 public class ProductController {
     private final ProductService productService;
     private final com.ecobazaarx.service.CarbonBaselineService carbonBaselineService;
+    private final com.ecobazaarx.service.CarbonCalculator carbonCalculator;
+    private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(ProductController.class);
 
     private ProductDto enrichDto(ProductDto dto) {
+        if (dto != null) {
+            logger.info("Trace Product: ID={}, Name={}, CarbonFootprint={}", dto.getId(), dto.getName(),
+                    dto.getCarbonFootprintPerUnit());
+        }
+
         if (dto == null || dto.getCategoryName() == null || dto.getCarbonFootprintPerUnit() == null) {
             return dto;
         }
@@ -99,13 +106,25 @@ public class ProductController {
 
     @GetMapping("/slug/{slug}")
     public ResponseEntity<ProductDto> getBySlug(@PathVariable String slug) {
-        Product p = productService.getBySlug(slug);
-        return ResponseEntity.ok(enrichDto(MapperUtil.toProductDto(p)));
+        try {
+            Product p = productService.getBySlug(slug);
+            return ResponseEntity.ok(enrichDto(MapperUtil.toProductDto(p)));
+        } catch (Exception e) {
+            logger.error("Error fetching product by slug: " + slug, e);
+            throw e;
+        }
     }
 
     @PostMapping
     public ResponseEntity<ProductDto> create(@RequestBody ProductDto dto, Authentication authentication) {
         User user = (User) authentication.getPrincipal();
+
+        // Calculate Carbon Footprint if inputs are provided
+        if (dto.getEcoInputs() != null) {
+            double footprint = carbonCalculator.calculateFootprint(dto.getEcoInputs());
+            dto.setCarbonFootprintPerUnit(footprint);
+        }
+
         Product p = MapperUtil.fromProductDto(dto);
         Product saved = productService.create(p, user);
         return ResponseEntity.ok(enrichDto(MapperUtil.toProductDto(saved)));
@@ -115,6 +134,13 @@ public class ProductController {
     public ResponseEntity<ProductDto> update(@PathVariable Long id, @RequestBody ProductDto dto,
             Authentication authentication) {
         User user = (User) authentication.getPrincipal();
+
+        // Calculate Carbon Footprint if inputs are provided
+        if (dto.getEcoInputs() != null) {
+            double footprint = carbonCalculator.calculateFootprint(dto.getEcoInputs());
+            dto.setCarbonFootprintPerUnit(footprint);
+        }
+
         Product p = MapperUtil.fromProductDto(dto);
         Product updated = productService.update(id, p, user);
         return ResponseEntity.ok(enrichDto(MapperUtil.toProductDto(updated)));

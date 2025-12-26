@@ -22,4 +22,7 @@ public class ProductDto {
   private java.util.List<String> images;
   private Double co2ComparisonPercentage;
   private String co2ComparisonType; // "LOWER", "SIMILAR", "NONE"
+  private EcoInputs ecoInputs; // For input only, not persisted directly
+  private String city;
+  private String state;
 }

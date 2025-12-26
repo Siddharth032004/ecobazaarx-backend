@@ -137,7 +137,8 @@ const Admin = () => {
         price: parseFloat(formData.price),
         mrp: parseFloat(formData.mrp || formData.price),
         stockQuantity: parseInt(formData.stock),
-        carbonFootprintPerUnit: parseFloat(formData.carbon_footprint),
+        // carbonFootprintPerUnit is now calculated by backend based on ecoInputs
+        ecoInputs: formData.eco_inputs,
         categoryName: selectedCategoryName || "Others",
         brand: selectedBrand ? selectedBrand.name : "",
         sku: formData.sku,
@@ -211,22 +212,11 @@ const Admin = () => {
             <p className="text-muted-foreground">Manage your eco-friendly business</p>
           </div>
 
+          {/* Edit Product Dialog */}
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button
-                onClick={() => {
-                  setEditingProduct(null);
-                  setIsDialogOpen(true);
-                }}
-                className="bg-primary hover:bg-primary-light"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Add Product
-              </Button>
-            </DialogTrigger>
             <DialogContent className="max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>{editingProduct ? "Edit Product" : "Add New Product"}</DialogTitle>
+                <DialogTitle>Edit Product</DialogTitle>
               </DialogHeader>
               <ProductForm
                 product={editingProduct}
@@ -240,6 +230,14 @@ const Admin = () => {
               />
             </DialogContent>
           </Dialog>
+
+          <Button
+            onClick={() => navigate('/seller/add-product')}
+            className="bg-primary hover:bg-primary-light"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Add Product
+          </Button>
         </div>
 
         {/* ADMIN DASHBOARD */}
@@ -532,6 +530,7 @@ const Admin = () => {
                             <TableHead>Name</TableHead>
                             <TableHead>Price</TableHead>
                             <TableHead>Stock</TableHead>
+                            <TableHead>CO₂ Footprint per item</TableHead>
                             <TableHead>CO₂ Saved per item</TableHead>
                             <TableHead className="text-right">Actions</TableHead>
                           </TableRow>
@@ -542,15 +541,19 @@ const Admin = () => {
                               <TableCell className="font-medium">{product.name}</TableCell>
                               <TableCell>₹{product.price}</TableCell>
                               <TableCell>{product.stockQuantity}</TableCell>
-                              <TableCell>{product.carbonSavedPerItem?.toFixed(1) || '0.0'}kg</TableCell>
+                              <TableCell className="text-muted-foreground">
+                                {product.carbonFootprintPerUnit !== null && product.carbonFootprintPerUnit !== undefined ? `${product.carbonFootprintPerUnit.toFixed(1)}kg` : "—"}
+                              </TableCell>
+                              <TableCell className="text-eco">
+                                {product.carbonSavedPerItem?.toFixed(1) || '0.0'}kg
+                              </TableCell>
                               <TableCell className="text-right">
                                 <div className="flex justify-end gap-2">
                                   <Button
                                     size="sm"
                                     variant="ghost"
                                     onClick={() => {
-                                      setEditingProduct(product);
-                                      setIsDialogOpen(true);
+                                      navigate(`/seller/edit-product/${product.id}`);
                                     }}
                                   >
                                     <Pencil className="h-4 w-4" />
@@ -718,7 +721,9 @@ const ProductForm = ({ product, categories, brands, onSave, onCancel }: { produc
       price: String(product.price),
       mrp: product.mrp ? String(product.mrp) : "",
       stock: product.stockQuantity ? String(product.stockQuantity) : "",
-      carbon_footprint: product.carbonFootprintPerUnit ? String(product.carbonFootprintPerUnit) : "",
+      // carbon_footprint removed, we don't load it back to inputs because it's system calculated
+      // Ideally we would load existing inputs if we stored them, but for now we start fresh or empty
+      eco_inputs: { materials: [], manufacturing: [], packaging: [], transport: "" } as EcoInputsData,
       // Use categoryName directly as ID since we switched to static list
       category_id: product.categoryName || "",
       brand_id: product.brand ? String(brands.find((b: any) => b.name === product.brand)?.id || "") : "",

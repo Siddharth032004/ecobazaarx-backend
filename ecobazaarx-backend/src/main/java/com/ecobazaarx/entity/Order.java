@@ -10,7 +10,8 @@ import java.util.Set;
 @Entity
 @Table(name = "orders", indexes = {
         @Index(name = "idx_order_user_id", columnList = "userId"),
-        @Index(name = "idx_order_timestamp", columnList = "timestamp")
+        @Index(name = "idx_order_timestamp", columnList = "timestamp"),
+        @Index(name = "idx_order_status", columnList = "status")
 })
 @Getter
 @Setter
